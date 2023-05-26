@@ -1,0 +1,317 @@
+<div class="container mt-1">
+  <div class="d-flex flex-row justify-content-center">
+    <div class="text-danger">
+      <span *ngIf="message && isJsonString(message)">
+        {{ message | json }}
+      </span>
+      <span *ngIf="message && !isJsonString(message)">
+        {{ message }}
+      </span>
+    </div>
+  </div>
+
+  <div class="d-flex flex-row justify-content-center">
+      <div class="col">
+        <input type="number" class="form-control m-0" id="t" [(ngModel)]="t" (ngModelChange)="tChanged()" name="t"
+          placeholder="t" title="zeit(alt + z)" accesskey="z">
+      </div>
+      <div class="col">
+        <input [ngClass]="{'input-error': datumModel?.errors}"  type="text" class="form-control" id="datum" [(ngModel)]="datum" (ngModelChange)="dateChanged()" name="datum"
+        placeholder="mm.jjjj" pattern="\d{2}\.\d{4}" title="datum(alt + d)" accesskey="d" #datumModel="ngModel">
+        <div *ngIf="datumModel.invalid && (datumModel.dirty || datumModel.touched)"
+          class="text-danger alert">
+          <div *ngIf="datumModel.errors?.['pattern']">
+            mm.jjjj
+          </div>
+        </div>
+      </div>
+      <div class="col-2">
+          <input class="form-control" type="text"
+                 placeholder="Thema"
+                 aria-label="Thema"
+                 matInput
+                 [formControl]="themaFormControl"
+                 [matAutocomplete]="autoThema" title="thema(alt + t)" accesskey="t">
+          <mat-autocomplete #autoThema="matAutocomplete">
+            <mat-option *ngFor="let api of filteredOptionsThema | async" [value]="api" class="my-0">
+              {{api}}
+            </mat-option>
+          </mat-autocomplete>
+      </div>
+      <div class="col">
+        <p class="text-danger m-2" title="{{thema}}">
+          {{ strResult ?? ''}}
+        </p>
+      </div>
+      <div class="col">
+        <button mat-raised-button type="button" (click)="onSubmit()" [disabled]="!(form.form.valid && thema)"
+          accesskey="R"><u>R</u>echnen</button>
+      </div>
+  </div>
+  <div class="d-flex flex-row justify-content-center">
+    <mat-spinner *ngIf="!ready"></mat-spinner>
+  </div>
+  <div class="d-flex flex-row mt-3">
+    <div class="col border border-1 d-flex flex-column">
+      <h2 class="text-center">E<u>i</u>ngaben als Json</h2>
+        <textarea cols="25" rows="25" (change)="doJson($event)" placeholder="Json" [ngModel]="eingabe | json"
+          #json class="border border-1" accesskey="i"></textarea>
+
+      <div class="row mt-2">
+        <div class="col-auto m-1">
+          Hinzufügen:
+        </div>
+        <div class="col-auto">
+          <select name="key" class="form-control" id="key" [(ngModel)]="key"
+            title="key(alt + k)" accesskey="k" (change)="addKey(json)">
+            <option *ngFor="let key_tmp of keys" [ngValue]="key_tmp">
+              {{ key_tmp }}
+            </option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="col border border-1">
+      <h2 class="text-center">Eingaben als Formular</h2>
+      <form #form="ngForm" class="border border-1 p-1 d-flex flex-column justify-content-center">
+        <div class="row justify-content-center">
+          <div class="col-3 text-end">
+            <label for="mandant" class="col-form-label" accesskey="m">mandant</label>
+          </div>
+          <div class="col-6">
+            <select name="mandant" class="form-control" id="mandant"
+              [(ngModel)]="eingabe.mandant" title="Mandant(alt + m)"
+              (change)="getTarife()">
+              <option *ngFor="let m of mandanten" [ngValue]="m">
+                {{ m }}
+              </option>
+            </select>
+          </div>
+        </div>
+        <div class="row justify-content-center">
+          <div class="col-3 text-end">
+            <label for="tarifgruppe" class="col-form-label">tarifgruppe</label>
+          </div>
+          <div class="col-6">
+            <select name="tarifgruppe" class="form-control" id="tarifgruppe"
+              [(ngModel)]="eingabe.tarifgruppe" (change)="getTarife()">
+              <option *ngFor="let gruppe of tarifgruppe" [ngValue]="gruppe">
+                {{ gruppe }}
+              </option>
+            </select>
+          </div>
+        </div>
+
+        <div class="row justify-content-center">
+          <div class="col-3 text-end">
+            <label for="tarif" class="col-form-label">tarif</label>
+          </div>
+          <div class="col-6">
+            <input class="form-control" type="text"
+            placeholder="Tarif"
+            aria-label="Tarif"
+            matInput
+            [formControl]="tarifFormControl"
+            [(ngModel)]="eingabe.tarif"
+            [matAutocomplete]="autoTarif">
+            <mat-autocomplete #autoTarif="matAutocomplete">
+              <mat-option *ngFor="let tarif of filteredOptionsTarif | async" [value]="tarif" class="my-0">
+                {{tarif}}
+              </mat-option>
+            </mat-autocomplete>
+          </div>
+        </div>
+        <div class="row justify-content-center">
+          <div class="col-3 text-end">
+            <label for="vertragsstatus" class="col-form-label">vertragsstatus</label>
+          </div>
+          <div class="col-6">
+            <select name="vertragsstatus" class="form-control" id="vertragsstatus"
+              [(ngModel)]="eingabe.vertragsstatus">
+              <option *ngFor="let status of vertragsstatus" [ngValue]="status">
+                {{ status }}
+              </option>
+            </select>
+          </div>
+        </div>
+        <div class="row justify-content-center">
+          <div class="col-3 text-end">
+            <label for="vp1.sex" class="col-form-label">vp1.sex</label>
+          </div>
+          <div class="col-6">
+            <select name="vp1.sex" class="form-control" id="vp1.sex"
+              [(ngModel)]="eingabe.vp1!.sex">
+              <option *ngFor="let s of sex" [ngValue]="s">
+                {{ s }}
+              </option>
+            </select>
+          </div>
+        </div>
+        <div class="row justify-content-center">
+          <div class="col-3 text-end">
+            <label for="vp1.x" class="col-form-label">vp1.x</label>
+          </div>
+          <div class="col-6">
+            <input type="number" class="form-control" id="vp1.x"
+              [(ngModel)]="eingabe.vp1!.x" name="vp1.x" #vp1.x="ngModel"
+              title="Eintrittsalter1">
+          </div>
+        </div>
+        <div class="row justify-content-center">
+          <div class="col-3 text-end">
+            <label for="vp1.gj" class="col-form-label">vp1.gj</label>
+          </div>
+          <div class="col-6">
+            <input type="number" class="form-control" id="vp1.gj"
+              [(ngModel)]="eingabe.vp1!.gj" name="vp1.gj" #vp1.gj="ngModel"
+              title="Geburtsjahr1">
+          </div>
+        </div>
+        <div class="row justify-content-center">
+          <div class="col-3 text-end">
+            <label for="vp1.p" class="col-form-label">vp1.p</label>
+          </div>
+          <div class="col-6">
+            <input type="number" class="form-control" id="vp1.p"
+              [(ngModel)]="eingabe.vp1!.p" name="vp1.p" #vp1.p="ngModel"
+              title="Todesfallprozent1">
+          </div>
+        </div>
+        <div class="row justify-content-center">
+          <div class="col-3 text-end">
+            <label for="vp1.r" class="col-form-label">vp1.r</label>
+          </div>
+          <div class="col-6">
+            <input type="number" class="form-control" id="vp1.r"
+              [(ngModel)]="eingabe.vp1!.r" name="vp1.r" #vp1.r="ngModel"
+              title="Raucherstatus">
+          </div>
+        </div>
+
+        <div class="row justify-content-center">
+          <div class="col-3 text-end">
+            <label for="bm" class="col-form-label">bm</label>
+          </div>
+          <div class="col-6">
+            <input type="number" class="form-control" id="bm" [(ngModel)]="eingabe.bm"
+              name="bm" #bj="ngModel" title="Beginnmonat">
+          </div>
+        </div>
+        <div class="row justify-content-center">
+          <div class="col-3 text-end">
+            <label for="bj" class="col-form-label">bj</label>
+          </div>
+          <div class="col-6">
+            <input type="number" class="form-control" id="bj" [(ngModel)]="eingabe.bj"
+              name="bj" #bj="ngModel" title="Beginnjahr">
+          </div>
+        </div>
+        <div class="row justify-content-center">
+          <div class="col-3 text-end">
+            <label for="nr" class="col-form-label">nr</label>
+          </div>
+          <div class="col-6">
+            <input type="number" class="form-control" id="nr" [(ngModel)]="eingabe.nr"
+              name="nr" #nr="ngModel" title="Vertragsdauer/Aufschubzeit">
+          </div>
+        </div>
+        <div class="row justify-content-center">
+          <div class="col-3 text-end">
+            <label for="mr" class="col-form-label">mr</label>
+          </div>
+          <div class="col-6">
+            <input type="number" class="form-control" id="mr" [(ngModel)]="eingabe.mr"
+              name="mr" #mr="ngModel" title="Zahldauer">
+          </div>
+        </div>
+        <div class="row justify-content-center">
+          <div class="col-3 text-end">
+            <label for="pza" class="col-form-label">pza</label>
+          </div>
+          <div class="col-6">
+            <select name="pza" class="form-control" id="pza" [(ngModel)]="eingabe.pza">
+              <option *ngFor="let art of zahlweise" [ngValue]="art" title="Zahlart">
+                {{ art }}
+              </option>
+            </select>
+          </div>
+        </div>
+        <div class="row justify-content-center">
+          <div class="col-3 text-end">
+            <label for="cn1" class="col-form-label">cn1</label>
+          </div>
+          <div class="col-6">
+            <input type="number" class="form-control" id="cn1" [(ngModel)]="eingabe.cn1"
+              name="cn1" #cn1="ngModel" title="Summe/Jahresrente">
+          </div>
+        </div>
+        <div class="row justify-content-center">
+          <div class="col-3 text-end">
+            <label for="rza" class="col-form-label">rza</label>
+          </div>
+          <div class="col-6">
+            <select name="rza" class="form-control" id="rza" [(ngModel)]="eingabe.rza"
+              title="Rentenzahlart">
+              <option *ngFor="let art of rzazahlweise" [ngValue]="art">
+                {{ art }}
+              </option>
+            </select>
+          </div>
+        </div>
+        <div class="row justify-content-center">
+          <div class="col-3 text-end">
+            <label for="g" class="col-form-label">g</label>
+          </div>
+          <div class="col-6">
+            <input type="number" class="form-control" id="g" [(ngModel)]="eingabe.g"
+              name="g" #g="ngModel" title="Garantiezeit">
+          </div>
+        </div>
+
+        <div class="row justify-content-center">
+          <div class="col-3 text-end">
+            <label for="nr0" class="col-form-label">nr0</label>
+          </div>
+          <div class="col-6">
+            <input type="number" class="form-control" id="nr0" [(ngModel)]="eingabe.nr0"
+              name="nr0" #nr0="ngModel" title="Vertragsdauer/Aufschubzeit">
+          </div>
+        </div>
+        <div class="row justify-content-center">
+          <div class="col-3 text-end">
+            <label for="mr0" class="col-form-label">mr0</label>
+          </div>
+          <div class="col-6">
+            <input type="number" class="form-control" id="mr0" [(ngModel)]="eingabe.mr0"
+              name="mr0" #mr0="ngModel" title="Zahldauer">
+          </div>
+        </div>
+
+      </form>
+    </div>
+    <div class="col border border-1">
+      <button mat-button [matMenuTriggerFor]="menu" toolTip [contentTemplate]="template">
+        <mat-icon>menu</mat-icon>
+      </button>
+      <mat-menu #menu="matMenu">
+        <button mat-menu-item (click)="loadComponent('Ablaufleistung')">Ablaufleistung</button>
+        <button mat-menu-item (click)="loadComponent('Zuzahlung')">Zuzahlung</button>
+        <button mat-menu-item (click)="loadComponent('Vektor')">Vektor</button>
+        <button mat-menu-item (click)="loadComponent('KostenNutzung')">KostenNutzung</button>
+        <button mat-menu-item (click)="loadComponent('Berechnung')">Berechnung</button>
+      </mat-menu>
+      <h2 class="text-center">{{sonderberechnung}}</h2>
+
+      <ng-template dynHost></ng-template>
+
+    </div>
+  </div>
+
+</div>
+<ng-template #template>
+  <div class="d-flex flex-column">
+    <div>
+      verschiedene Berechnungen
+    </div>
+  </div>
+</ng-template>
